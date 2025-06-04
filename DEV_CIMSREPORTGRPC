@@ -1,0 +1,82 @@
+pipeline {
+   agent {
+        label 'win-Devagent'
+    }
+
+    environment {
+        GO_VERSION = "1.23.2"
+        GOROOT = "C:\\Program Files\\Go"
+        GOPATH = "C:\\Go\\Projects"
+        PATH = "${GOROOT}\\bin;${GOPATH}\\bin;${env.PATH}"
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                git branch: 'master', credentialsId: 'aee5f756-7752-47bb-ba93-9ba15b199308', url: 'http://172.30.1.200:3005/ifinixfintech_RBIReports/RBI_Reports_Grpc2.git'
+            }
+        }
+
+        stage('Setup Go Environment') {
+            steps {
+                bat 'go version'
+            }
+        }
+
+        stage('Install Dependencies') {
+            steps {
+                bat 'go mod tidy'
+                bat 'go mod download'
+            }
+        }
+
+        stage('Build') {
+            steps {
+                bat 'go build -o rbireportgrpc.exe'
+            }
+        }
+
+        stage('Copy Build to Desired Folder') {
+            steps {
+                // Copy to C:\inetpub
+                bat 'copy rbireportgrpc.exe C:\\GO_EXE\\'
+
+                // Verify if the file was successfully copied
+                bat 'dir C:\\GO_EXE' 
+            }
+        }
+
+        
+
+        // stage('Archive Artifacts') {
+        //     steps {
+        //         // Archive the executable from the new location
+        //         archiveArtifacts artifacts: 'C:\\inetpub\\Golang_Project.exe', fingerprint: true
+        //     }
+        // }
+
+        stage('Clean Up') {
+            steps {
+                cleanWs()
+            }
+        }
+    }
+
+     post {
+    always {
+        emailext(
+            subject: "Build Notification: ${JOB_NAME} #${BUILD_NUMBER}",
+            body: """
+                The build is complete.
+
+                Pipeline Name: ${JOB_NAME}
+                Build Number: ${BUILD_NUMBER}
+                Status: ${currentBuild.currentResult}
+
+                View details at: ${BUILD_URL}
+            """,
+            to: 'anup.dudhe@ifinixfintech.com,nikhil.vargude@ifinixfintech.com,sachin.suryawanshi@ifinixfintech.com,avinash.chirame@ifinixfintech.com,prathamesh.more@ifinixfintech.com,sahil.mulani@ifinixfintech.com,mayuri.bonde@ifinixfintech.com,sarika.kute@ifinixfintech.com,pooja.erulkar@ifinixfintech.com,aniket.randive@ifinixfintech.com,aniket.kamble@ifinixfintech.com,vrushali.tatke@ifinixfintech.com,shreyash.bongulwar@ifinixfintech.com,aarti.methe@ifinixfintech.com,ashvini.awathe@ifinixfintech.com,shital.rajemane@ifinixfintech.com,tejal.kangude@ifinixfintech.com,namrata.chavan@ifinixfintech.com,mahesh.suryawanshi@ifinixfintech.com,saurav.gaikwad@ifinixfintech.com,abhinav.kumar@ifinixfintech.com,tejal.kangude@ifinixfintech.com,prakash.bangar@ifinixfintech.com'
+        )
+    }
+}
+}
